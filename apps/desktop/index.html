@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sentinel</title>
+
+    <!--
+      Applies the stored theme before the app bundle parses, so a user who chose
+      dark doesn't get a white flash on every launch. It has to be inline and
+      blocking for that to work — by the time a module script runs, the browser
+      has already painted.
+
+      Two coupling notes:
+      - The key and the resolution rule are duplicated from src/lib/theme.ts.
+        This script cannot import it (it runs before the bundle). Change one,
+        change the other.
+      - This relies on `app.security.csp` being null in tauri.conf.json. If a
+        CSP is introduced later, this needs a hash or nonce or it silently stops
+        running and the flash comes back.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("sentinel-ui-theme");
+          var isDark =
+            stored === "light" || stored === "dark"
+              ? stored === "dark"
+              : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (isDark) {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {
+          // Storage unavailable — fall through to the light default.
+        }
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

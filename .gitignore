@@ -1,0 +1,62 @@
+# --- Private working material -------------------------------------------
+# Design docs, the execution plan, and the AI working instructions used to
+# build Sentinel. Kept in the working tree, deliberately never published.
+# Anything a user or contributor needs is in README.md and docs/ instead.
+product-docs/
+CLAUDE.md
+
+# Internal build notes that sit next to the code they describe, so they are
+# ignored in place rather than moved. Neither is something a user needs:
+# `assets/` explains how the icons were generated, `plugins/` explains the
+# crate layout — CONTRIBUTING.md carries the part a contributor actually needs.
+assets/README.md
+plugins/README.md
+
+# Claude Code local state (machine-specific permissions, session data)
+.claude/
+
+# --- Rust ----------------------------------------------------------------
+# Build output lands at the workspace root: core/ and src-tauri/ share one
+# workspace, so it is not inside src-tauri/target.
+/target
+
+# --- Node / frontend -----------------------------------------------------
+node_modules
+dist
+dist-ssr
+*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Packaging output ----------------------------------------------------
+# Release bundles are attached to GitHub Releases by CI, never committed.
+*.AppImage
+*.deb
+*.rpm
+
+# --- Secrets -------------------------------------------------------------
+# Tauri updater signing keys especially: a leaked private key lets someone
+# else sign an update your users would install. Keep it in GitHub Secrets.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# --- Editors and OS ------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

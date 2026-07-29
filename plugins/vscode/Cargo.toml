@@ -1,0 +1,14 @@
+[package]
+name = "sentinel-plugin-vscode"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Sentinel plugins for VS Code and Cursor caches. Two plugins, one crate — see the crate docs."
+
+# `sentinel-plugin-api` and nothing else — see docs/PLUGIN_SDK.md.
+[dependencies]
+sentinel-plugin-api = { path = "../../crates/plugin-api" }
+
+[dev-dependencies]
+tempfile = "3.27.0"

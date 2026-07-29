@@ -1,0 +1,14 @@
+[package]
+name = "sentinel-plugin-browser"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Sentinel plugin for browser caches. Cache directories only — never profile data."
+
+# `sentinel-plugin-api` and nothing else — see docs/PLUGIN_SDK.md.
+[dependencies]
+sentinel-plugin-api = { path = "../../crates/plugin-api" }
+
+[dev-dependencies]
+tempfile = "3.27.0"

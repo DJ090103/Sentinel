@@ -1,0 +1,21 @@
+[package]
+name = "sentinel-plugin-api"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "The Plugin trait and related types that every Sentinel plugin (npm, Docker, Cursor, ...) implements."
+
+# Deliberately the lightest crate in the workspace. Plugin crates under
+# /plugins depend ONLY on this — not on sentinel-core — so a plugin author
+# never pulls in the scheduler, database, or Tokio runtime just to
+# implement a trait.
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+
+# Test-only. The serialized shape of these types is a contract with the
+# frontend, so it's worth asserting on the actual JSON rather than trusting the
+# derive — but no plugin author inherits this.
+[dev-dependencies]
+serde_json = "1.0.151"
+tempfile = "3.27.0"

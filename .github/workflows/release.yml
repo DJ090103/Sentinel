@@ -1,0 +1,93 @@
+name: Release
+
+# Tag-driven: pushing `v0.1.0` builds the bundles and attaches them to a
+# draft release. Draft rather than published, so a human looks at the
+# artifacts before anyone can download a build that deletes files.
+on:
+  push:
+    tags:
+      - "v*"
+  # Rehearsal: builds and verifies everything, but publishes nothing.
+  # Without the guard on the publish step below this would cut a draft
+  # release tagged with the branch name, which is not a rehearsal.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build Linux bundles
+    runs-on: ubuntu-22.04
+    # 22.04 rather than latest on purpose: the AppImage and .deb link
+    # against the glibc and webkit2gtk of whatever built them, so building
+    # on the newest runner would silently drop support for every user on an
+    # older distro. Build old, run everywhere.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Tauri Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev \
+            build-essential \
+            curl \
+            wget \
+            file
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The release build runs the same gate as CI before packaging.
+      # A bundle that ships a failing safety test is not one to publish.
+      - name: Verify before packaging
+        run: |
+          cargo fmt --all --check
+          cargo clippy --workspace --all-targets -- -D warnings
+          cargo test --workspace
+
+      # Rehearsal path: proves the bundles build, publishes nothing.
+      - name: Build bundles only (manual run)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: pnpm --filter sentinel-desktop tauri build --bundles deb,rpm,appimage
+
+      - name: Build and publish
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: "Sentinel ${{ github.ref_name }}"
+          releaseBody: |
+            Linux builds. See [docs/INSTALL.md](docs/INSTALL.md) for
+            installation, and [docs/SAFETY.md](docs/SAFETY.md) for exactly
+            what Sentinel will and won't touch.
+
+            - `.deb` — Debian, Ubuntu, Pop!_OS, Mint
+            - `.AppImage` — any distro, no install needed
+            - `.rpm` — Fedora, RHEL, openSUSE
+          releaseDraft: true
+          prerelease: false
+          args: --bundles deb,rpm,appimage

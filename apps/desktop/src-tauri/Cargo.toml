@@ -1,0 +1,45 @@
+[package]
+name = "sentinel-desktop"
+version.workspace = true
+description = "Sentinel: an AI-assisted developer workstation companion (Tauri shell)"
+authors.workspace = true
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "sentinel_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# This crate should stay thin: IPC glue only. All real logic lives in
+# sentinel-core, which has no Tauri dependency and is fast to test.
+sentinel-core = { path = "../../../crates/core" }
+# For `CleanTarget`/`CleanOutcome` and the free `clean` function — the only
+# entry point that deletes anything. Named directly rather than reached through
+# `core` so the dependency is visible where it is used.
+sentinel-plugin-api = { path = "../../../crates/plugin-api" }
+# Every shipped plugin is named here and registered in `src/plugins.rs`. There
+# is no dynamic loading, so this list and that file are the whole story.
+sentinel-plugin-browser = { path = "../../../plugins/browser" }
+sentinel-plugin-bun = { path = "../../../plugins/bun" }
+sentinel-plugin-cargo = { path = "../../../plugins/cargo" }
+sentinel-plugin-junk = { path = "../../../plugins/junk" }
+sentinel-plugin-npm = { path = "../../../plugins/npm" }
+sentinel-plugin-pip = { path = "../../../plugins/pip" }
+sentinel-plugin-vscode = { path = "../../../plugins/vscode" }
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Only to name `broadcast::error::RecvError` when draining the scheduler's run
+# feed — a lagged receiver must be skipped and a closed one must end the loop,
+# and treating them alike would either spin or drop events. The runtime itself
+# is Tauri's; this adds no second one.
+tokio = { version = "1.53.1", features = ["sync"] }

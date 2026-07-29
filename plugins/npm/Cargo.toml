@@ -1,0 +1,17 @@
+[package]
+name = "sentinel-plugin-npm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Sentinel plugin for the npm cache: finds and reclaims npm's on-disk caches."
+
+# Depends on `sentinel-plugin-api` and nothing else — no `sentinel-core`, no
+# Tauri, no runtime. That boundary is the point of the plugin-api crate, and
+# this plugin is the worked example every later one copies, so it has to hold
+# here first.
+[dependencies]
+sentinel-plugin-api = { path = "../../crates/plugin-api" }
+
+[dev-dependencies]
+tempfile = "3.27.0"

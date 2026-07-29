@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+members = [
+    "apps/desktop/src-tauri",
+    "crates/core",
+    "crates/plugin-api",
+    "plugins/browser",
+    "plugins/bun",
+    "plugins/cargo",
+    "plugins/junk",
+    "plugins/npm",
+    "plugins/pip",
+    "plugins/vscode",
+]
+
+# Shared metadata for every crate in the workspace, so version/edition/etc.
+# stay in sync in one place instead of drifting per-crate.
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Sentinel Contributors"]
+license = "MIT"

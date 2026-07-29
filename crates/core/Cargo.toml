@@ -1,0 +1,26 @@
+[package]
+name = "sentinel-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Platform-agnostic domain logic for Sentinel: scanning, scheduling, database, settings."
+
+# This crate has NO dependency on Tauri. It should be usable from a CLI,
+# a test suite, or a different UI shell without modification. That boundary
+# is what keeps `apps/desktop/src-tauri` thin and keeps this crate fast to
+# `cargo test`.
+[dependencies]
+chrono = { version = "0.4.45", features = ["serde"] }
+directories = "6.0.0"
+sentinel-plugin-api = { path = "../plugin-api" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sysinfo = "0.39.6"
+# Only the features `scheduler` actually uses. Not `full`: this is the crate
+# whose stated purpose is to stay lean and fast to `cargo test`, and most of
+# what `full` pulls in (net, fs, process, signal) has no caller here.
+tokio = { version = "1.53.1", features = ["macros", "rt", "sync", "time"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
