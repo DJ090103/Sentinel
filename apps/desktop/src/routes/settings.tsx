@@ -4,10 +4,9 @@ import { PageHeader } from "@/components/page-header";
 /**
  * Application preferences.
  *
- * Theme is the only real setting so far — it moved here from the placeholder
- * home page now that there's somewhere for it to belong. Phase 2 adds the rest
- * (scan interval, last-scan timestamp) and moves persistence off `localStorage`
- * onto the settings file in `crates/core/src/settings`.
+ * Theme is the only preference exposed here. It currently persists in webview
+ * `localStorage`; Rust has a separate settings file for scheduler state. See
+ * `docs/ARCHITECTURE.md`, "Persistence", before changing either boundary.
  */
 export function SettingsPage() {
   return (

@@ -82,6 +82,18 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_uses_library_caches_under_home() {
+        let home = tempfile::tempdir().expect("temp dir");
+        std::fs::create_dir_all(home.path().join("Library").join("Caches")).expect("create");
+
+        assert_eq!(
+            resolve_from(None, os(home.path())).expect("resolves"),
+            home.path().join("Library").join("Caches")
+        );
+    }
+
     #[cfg(unix)]
     #[test]
     fn no_environment_at_all_is_not_a_crash() {

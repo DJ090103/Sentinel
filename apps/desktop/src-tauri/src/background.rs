@@ -6,7 +6,7 @@
 //!
 //! All of the *logic* lives in `sentinel_core` — this module is wiring, in
 //! keeping with the rest of `src-tauri`. It exists because `core` cannot emit
-//! Tauri events (see `product-docs/ARCHITECTURE.md` on why `core` has no Tauri
+//! Tauri events (see `docs/ARCHITECTURE.md` on why `core` has no Tauri
 //! dependency), so something on this side has to bridge the two.
 //!
 //! Nothing here is allowed to stop the app launching. Sentinel without a

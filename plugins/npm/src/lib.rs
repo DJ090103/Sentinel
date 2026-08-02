@@ -2,9 +2,8 @@
 //!
 //! This is the first real plugin and the worked example every later one copies,
 //! so it is deliberately boring and explicit. If something here feels awkward,
-//! the trait is the thing to fix — see the Phase 5 guardrail in
-//! `product-docs/EXECUTION_PLAN.md` — because a workaround written here gets copied
-//! eleven more times.
+//! the trait is the thing to fix — see `docs/PLUGIN_SDK.md` — because a
+//! workaround written here gets copied into every later plugin.
 //!
 //! # What it will and won't touch
 //!
@@ -357,8 +356,8 @@ mod tests {
         assert_eq!(scan.total_bytes(), 0);
     }
 
-    /// A cache holding no files still holds reclaimable space, and this used to
-    /// assert the opposite.
+    /// A cache holding a directory tree is still offered even when the host
+    /// filesystem reports no allocated blocks for empty directories.
     ///
     /// While `directory_size` measured file lengths, an emptied cache totalled
     /// zero and was skipped, so Sentinel silently declined to offer it. That is
@@ -366,7 +365,6 @@ mod tests {
     /// directories holding 9.9 MiB of blocks that a clean would genuinely give
     /// back. Now that sizing counts allocated blocks, the directories are
     /// visible and the target is offered.
-    #[cfg(unix)]
     #[test]
     fn a_cache_emptied_of_files_still_has_space_to_reclaim() {
         let dir = tempfile::tempdir().expect("temp dir");
@@ -383,10 +381,8 @@ mod tests {
             1,
             "the emptied cache must still be offered"
         );
-        assert!(
-            scan.total_bytes() > 0,
-            "the directories themselves occupy blocks that removing them frees"
-        );
+        #[cfg(target_os = "linux")]
+        assert!(scan.total_bytes() > 0, "Linux reports directory blocks");
     }
 
     #[test]

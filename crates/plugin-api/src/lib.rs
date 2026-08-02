@@ -110,8 +110,8 @@ pub enum TargetRisk {
     ///
     /// Reserved for cases where being wrong costs the user real work, not just
     /// time: a Docker volume, a browser profile directory, anything belonging
-    /// to a process still running. Phase 6 plugins are the reason this exists —
-    /// see `product-docs/EXECUTION_PLAN.md`.
+    /// to a process still running. See `docs/PLUGIN_SDK.md` for the risk
+    /// contract plugins must follow.
     ///
     /// A plugin that is unsure whether something is `Review` or `Destructive`
     /// should choose `Destructive`. The cost of over-warning is a moment's
@@ -245,7 +245,7 @@ pub struct SpaceEstimate {
 /// Note what this type does *not* contain: no path, no command, nothing
 /// actionable. Recommendations are explanations. Acting on one means the user
 /// selecting targets from a `scan` and those going to `clean` — which is what
-/// keeps the future AI layer (see `product-docs/ARCHITECTURE.md`) out of the delete
+/// keeps the future AI layer (see `docs/ARCHITECTURE.md`) out of the delete
 /// path entirely.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -468,7 +468,7 @@ pub trait Plugin: Send + Sync {
 /// This is defence in depth, not the primary protection. The real guarantee is
 /// that a plugin never proposes this directory itself — only known children of
 /// it that already exist — so a path this implausible resolves to candidates
-/// that don't exist. See `product-docs/PLUGIN_SDK.md`.
+/// that don't exist. See `docs/PLUGIN_SDK.md`.
 pub fn validate_tool_directory(candidate: &Path) -> Result<(), PluginError> {
     if !candidate.is_absolute() {
         return Err(PluginError::ToolUnavailable {

@@ -1,7 +1,7 @@
 //! System information gathering: CPU, RAM, disk, OS, hostname.
 //!
 //! This backs the dashboard's system cards. Nothing here is persisted — see
-//! `product-docs/ARCHITECTURE.md`, "Persistence": live system data is read fresh from
+//! `docs/ARCHITECTURE.md`, "Persistence": live system data is read fresh from
 //! the OS on every refresh, because storing it would only produce a stale copy
 //! of something the OS already tracks accurately.
 //!

@@ -18,9 +18,8 @@ const OPTIONS: { value: Theme; label: string; Icon: LucideIcon }[] = [
  * directly. `system` in particular is invisible in a two-state toggle, and it
  * is the default.
  *
- * Built from `Button` rather than a dropdown so this task adds no new
- * dependency — there is no header or sidebar to hang a menu off yet. Once
- * Phase 1's navigation lands this can move into it and become a menu.
+ * Built from `Button` rather than a dropdown because three explicit choices
+ * remain faster to inspect and use than a hidden menu.
  */
 export function ModeToggle() {
   const { theme, setTheme } = useTheme();

@@ -5,7 +5,7 @@
 //! and the TypeScript side have a single thing to agree on.
 //!
 //! It defines the message but does **not** send it. `crates/core` has no
-//! dependency on Tauri (see `product-docs/ARCHITECTURE.md`), so the actual
+//! dependency on Tauri (see `docs/ARCHITECTURE.md`), so the actual
 //! `emit` lives in `apps/desktop/src-tauri`, which subscribes to the
 //! scheduler's run feed and forwards each event using [`EVENT_NAME`]. Keeping
 //! the type here means the contract is testable with `cargo test` and would

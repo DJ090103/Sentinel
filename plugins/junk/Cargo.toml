@@ -6,7 +6,7 @@ authors.workspace = true
 license.workspace = true
 description = "Sentinel plugin for the machine's own disposable data: thumbnail caches, the trash, and stale screenshots."
 
-# `sentinel-plugin-api` and nothing else — see product-docs/PLUGIN_SDK.md.
+# `sentinel-plugin-api` and nothing else — see docs/PLUGIN_SDK.md.
 [dependencies]
 sentinel-plugin-api = { path = "../../crates/plugin-api" }
 

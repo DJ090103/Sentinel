@@ -16,7 +16,7 @@ import { SystemScanPage } from "@/routes/system-scan";
  * so a hard reload or window recreation on a path like `/settings` can 404.
  * Everything after `#` never reaches that resolver, which sidesteps the problem
  * entirely. The cosmetic cost (`index.html#/settings`) is invisible in a desktop
- * window with no address bar. See product-docs/ARCHITECTURE.md, "Routing".
+ * window with no address bar. See docs/ARCHITECTURE.md, "Frontend".
  */
 export const router = createHashRouter([
   {

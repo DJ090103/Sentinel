@@ -1,6 +1,7 @@
-# Installing Sentinel on Linux
+# Installing Sentinel
 
-Sentinel is a desktop app. Pick whichever of these suits your distro.
+Sentinel is a desktop app. Published packages currently target Linux. macOS is
+supported for development builds from source.
 
 Before installing anything that deletes files, it's worth reading
 [SAFETY.md](SAFETY.md) — it lists exactly what Sentinel will and won't
@@ -61,9 +62,18 @@ which is a reasonable position.
 
 **Prerequisites:**
 
-- [Rust](https://rustup.rs) (stable)
-- [Node.js](https://nodejs.org) 20+ and [pnpm](https://pnpm.io) 9+
-- Tauri's system libraries:
+- [Rust](https://rustup.rs) 1.96.1 (installed automatically by rustup from
+  `rust-toolchain.toml`)
+- [Node.js](https://nodejs.org) 22.13+ and [pnpm](https://pnpm.io) 11.7.0
+- Tauri's platform prerequisites:
+
+On macOS, install Apple's command-line tools:
+
+```bash
+xcode-select --install
+```
+
+On Linux, install the WebKitGTK and packaging libraries:
 
 ```bash
 # Debian / Ubuntu
@@ -88,7 +98,9 @@ listed.
 ```bash
 git clone https://github.com/DJ090103/Sentinel.git
 cd Sentinel
-pnpm install
+corepack enable
+corepack install --global pnpm@11.7.0
+pnpm install --frozen-lockfile
 
 # Run it in development
 pnpm --filter sentinel-desktop tauri dev
@@ -97,8 +109,17 @@ pnpm --filter sentinel-desktop tauri dev
 pnpm --filter sentinel-desktop tauri build
 ```
 
+The root `package.json` pins pnpm. If `pnpm` still resolves to an old or deleted
+global install, inspect `which -a pnpm`, remove that stale shim from your `PATH`,
+then rerun the two Corepack commands above.
+
 Bundles land in `target/release/bundle/` — `deb/`, `rpm/` and
-`appimage/` subdirectories.
+`appimage/` subdirectories on Linux, with the platform-appropriate bundle
+directory on macOS.
+
+macOS development builds are supported for local testing. Published macOS
+artifacts are not provided yet because signing and notarization have not been
+configured.
 
 **Verifying before you trust it:**
 
@@ -115,9 +136,8 @@ snippets, unsaved buffers, browser passwords or file history.
 
 One plain JSON file, which you can read, edit, or delete to reset the app:
 
-```
-~/.config/sentinel/settings.json
-```
+- Linux: `${XDG_CONFIG_HOME:-~/.config}/sentinel/settings.json`
+- macOS: `~/Library/Application Support/sentinel/settings.json`
 
 There is no database, no cache of your data, and nothing sent anywhere.
 
@@ -125,10 +145,9 @@ There is no database, no cache of your data, and nothing sent anywhere.
 
 ## Uninstalling completely
 
-```bash
-sudo apt remove sentinel          # or your distro's equivalent
-rm -rf ~/.config/sentinel         # its settings file
-```
+Remove the installed package with your distro's package manager, then remove
+the platform-specific settings directory above if you also want to reset local
+configuration.
 
 That's everything. Sentinel doesn't install services, timers, or
 autostart entries.

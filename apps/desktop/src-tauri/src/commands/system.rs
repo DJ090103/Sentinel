@@ -41,7 +41,7 @@ impl Default for SystemMonitorState {
 
 /// Returns a fresh reading of the host machine for the dashboard.
 ///
-/// Thin by design, per `product-docs/ARCHITECTURE.md`: this does no measurement of its
+/// Thin by design, per `docs/ARCHITECTURE.md`: this does no measurement of its
 /// own, it just unlocks the monitor and hands back what `sentinel-core`
 /// produces.
 #[tauri::command]

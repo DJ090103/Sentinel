@@ -27,7 +27,7 @@
 //! a screenshot's file extension, older than a configured age.
 //!
 //! That is a genuine departure from the closed-list model in
-//! `product-docs/SECURITY.md` §4, so it is fenced in on every side:
+//! `docs/SAFETY.md`, so it is fenced in on every side:
 //!
 //! - **One directory, not a tree.** No recursion. A subdirectory someone made
 //!   inside their screenshots folder is not descended into.
