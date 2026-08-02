@@ -3,7 +3,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Surface container. Vendored from shadcn/ui — see product-docs/ARCHITECTURE.md,
+ * Surface container. Vendored from shadcn/ui — see docs/ARCHITECTURE.md,
  * "Frontend styling", for why these files live in the repo rather than in
  * `node_modules`.
  */

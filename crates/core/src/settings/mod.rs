@@ -1,6 +1,6 @@
 //! User-configurable app settings, persisted as a single JSON file.
 //!
-//! Deliberately *not* a database. See `product-docs/ARCHITECTURE.md`, "Persistence":
+//! Deliberately *not* a database. See `docs/ARCHITECTURE.md`, "Persistence":
 //! this is a handful of small, flat values with no query or history
 //! requirement, and keeping it as plain JSON at a documented path means a user
 //! can read it, edit it, or delete it to reset the app without any tooling.

@@ -1,10 +1,8 @@
 //! Test doubles shared across this crate's unit tests.
 //!
-//! Compiled only under `cfg(test)` and never shipped. Phase 3 of
-//! `product-docs/EXECUTION_PLAN.md` deliberately proves the trait, registry, and
-//! scanner against a throwaway implementation rather than against a real
-//! plugin — committing to the trait's shape before anything depends on it is
-//! the whole point of doing this phase separately.
+//! Compiled only under `cfg(test)` and never shipped. The trait, registry, and
+//! scanner are deliberately proved against a throwaway implementation rather
+//! than a real plugin, keeping core tests independent from concrete tools.
 
 use std::path::PathBuf;
 

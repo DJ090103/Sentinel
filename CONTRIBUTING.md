@@ -16,10 +16,16 @@ Open an issue before you start so we don't both write the same one.
 
 ## Setup
 
+Sentinel pins Rust 1.96.1 and pnpm 11.7.0. pnpm 11 requires Node.js
+22.13 or newer. Rustup reads `rust-toolchain.toml` automatically; the root
+`package.json` records the Node and pnpm requirements.
+
 ```bash
 git clone https://github.com/DJ090103/Sentinel.git
 cd Sentinel
-pnpm install
+corepack enable
+corepack install --global pnpm@11.7.0
+pnpm install --frozen-lockfile
 pnpm --filter sentinel-desktop tauri dev
 ```
 

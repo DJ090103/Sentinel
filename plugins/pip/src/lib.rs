@@ -1,6 +1,6 @@
 //! Sentinel's pip plugin: reclaims the caches pip keeps on disk.
 //!
-//! Follows `product-docs/PLUGIN_SDK.md` and the npm plugin it documents. The shape is
+//! Follows `docs/PLUGIN_SDK.md` and the npm plugin it documents. The shape is
 //! deliberately the same — a closed list of named subdirectories of a validated
 //! cache root — so that reading one plugin teaches you all of them.
 //!

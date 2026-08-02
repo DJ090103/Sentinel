@@ -268,8 +268,24 @@ fn human_bytes(bytes: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
     use sentinel_plugin_api::clean;
     use std::fs;
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    const CHROME_CACHE: &str = "google-chrome/Default/Cache";
+    #[cfg(target_os = "macos")]
+    const CHROME_CACHE: &str = "Google/Chrome/Default/Cache";
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    const BRAVE_CACHE: &str = "BraveSoftware/Brave-Browser/Default/Cache";
+    #[cfg(target_os = "macos")]
+    const BRAVE_CACHE: &str = "BraveSoftware/Brave-Browser/Default/Cache";
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    const FIREFOX_CACHE: &str = "mozilla/firefox/abc.default/cache2";
+    #[cfg(target_os = "macos")]
+    const FIREFOX_CACHE: &str = "Firefox/Profiles/abc.default/cache2";
 
     /// A fake cache home. Paths are relative, e.g. `google-chrome/Default`.
     fn fake_cache_home(entries: &[(&str, usize)]) -> tempfile::TempDir {
@@ -284,13 +300,10 @@ mod tests {
         dir
     }
 
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(unix)]
     #[test]
     fn scan_finds_each_installed_browser() {
-        let home = fake_cache_home(&[
-            ("google-chrome/Default/Cache", 300),
-            ("BraveSoftware/Brave-Browser/Default/Cache", 200),
-        ]);
+        let home = fake_cache_home(&[(CHROME_CACHE, 300), (BRAVE_CACHE, 200)]);
         let plugin = BrowserPlugin::with_cache_home(home.path());
 
         let scan = plugin.scan().expect("scan succeeds");
@@ -303,10 +316,10 @@ mod tests {
         assert!(scan.targets.iter().all(|t| t.plugin_id() == "browser"));
     }
 
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(unix)]
     #[test]
     fn a_browser_that_is_not_installed_is_simply_absent() {
-        let home = fake_cache_home(&[("google-chrome/Default/Cache", 10)]);
+        let home = fake_cache_home(&[(CHROME_CACHE, 10)]);
         let plugin = BrowserPlugin::with_cache_home(home.path());
 
         let scan = plugin.scan().expect("scan succeeds");
@@ -317,13 +330,10 @@ mod tests {
 
     /// The structural guarantee: every path this plugin builds is rooted at the
     /// cache home, so nothing under the profile tree is expressible.
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(unix)]
     #[test]
     fn no_target_ever_leaves_the_cache_directory() {
-        let home = fake_cache_home(&[
-            ("google-chrome/Default/Cache", 10),
-            ("mozilla/firefox/abc.default/cache2", 10),
-        ]);
+        let home = fake_cache_home(&[(CHROME_CACHE, 10), (FIREFOX_CACHE, 10)]);
         let plugin = BrowserPlugin::with_cache_home(home.path());
 
         let scan = plugin.scan().expect("scan succeeds");
@@ -340,29 +350,18 @@ mod tests {
 
     /// Profile data lives in a sibling tree. Even when it sits right next to
     /// the cache home, nothing in it can be reached.
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(unix)]
     #[test]
     fn profile_data_beside_the_cache_home_is_untouchable() {
         let root = tempfile::tempdir().expect("temp dir");
         let cache_home = root.path().join(".cache");
         let config_home = root.path().join(".config");
 
-        fs::create_dir_all(
-            cache_home
-                .join("google-chrome")
-                .join("Default")
-                .join("Cache"),
-        )
-        .expect("create cache");
-        fs::write(
-            cache_home
-                .join("google-chrome")
-                .join("Default")
-                .join("Cache")
-                .join("blob"),
-            vec![b'x'; 100],
-        )
-        .expect("write");
+        let cache = CHROME_CACHE
+            .split('/')
+            .fold(cache_home.clone(), |path, part| path.join(part));
+        fs::create_dir_all(&cache).expect("create cache");
+        fs::write(cache.join("blob"), vec![b'x'; 100]).expect("write");
 
         let profile = config_home.join("google-chrome").join("Default");
         fs::create_dir_all(&profile).expect("create profile");
@@ -400,10 +399,10 @@ mod tests {
         assert!(plugin.scan().expect("not an error").targets.is_empty());
     }
 
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(unix)]
     #[test]
     fn recommendations_are_explanations_not_actions() {
-        let home = fake_cache_home(&[("google-chrome/Default/Cache", 4096)]);
+        let home = fake_cache_home(&[(CHROME_CACHE, 4096)]);
         let plugin = BrowserPlugin::with_cache_home(home.path());
 
         let recommendations = plugin.recommend().expect("recommend succeeds");
@@ -414,16 +413,14 @@ mod tests {
             .contains(home.path().to_string_lossy().as_ref()));
     }
 
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(unix)]
     #[test]
     fn scan_then_clean_removes_exactly_what_was_scanned() {
-        let home = fake_cache_home(&[
-            ("google-chrome/Default/Cache", 100),
-            ("something-else/data", 50),
-        ]);
+        let home = fake_cache_home(&[(CHROME_CACHE, 100), ("something-else/data", 50)]);
         let plugin = BrowserPlugin::with_cache_home(home.path());
 
         let scan = plugin.scan().expect("scan succeeds");
+        let removed_path = scan.targets[0].path().to_path_buf();
         let outcome = clean(&plugin, &scan.targets).expect("clean succeeds");
 
         assert_eq!(outcome.removed.len(), 1);
@@ -431,17 +428,17 @@ mod tests {
             outcome.reclaimed_bytes >= 100,
             "100 bytes were written, and allocated size rounds up to whole blocks"
         );
-        assert!(!home.path().join("google-chrome").exists());
+        assert!(!removed_path.exists());
         assert!(
             home.path().join("something-else").exists(),
             "a directory this plugin doesn't know must survive"
         );
     }
 
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(unix)]
     #[test]
     fn a_forged_target_is_refused() {
-        let home = fake_cache_home(&[("google-chrome/Default/Cache", 10)]);
+        let home = fake_cache_home(&[(CHROME_CACHE, 10)]);
         let victim = tempfile::tempdir().expect("temp dir");
         fs::write(victim.path().join("History"), "sensitive").expect("write");
 

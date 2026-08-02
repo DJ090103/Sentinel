@@ -2,15 +2,14 @@
 //!
 //! It reads the machine and records *when* it did so in the settings file. The
 //! reading itself is deliberately thrown away: there is nowhere to put a time
-//! series until Phase 8 introduces SQLite (see `product-docs/ARCHITECTURE.md`,
+//! series until a history feature introduces SQLite (see `docs/ARCHITECTURE.md`,
 //! "Persistence"), and a snapshot kept only in memory would be a stale copy of
 //! something the dashboard already polls fresh every two seconds.
 //!
 //! Taking a reading that gets discarded is not busywork. `last_scan_at` claims
 //! Sentinel looked at the machine at that moment, and the only way for that
-//! claim to be true is to actually look. It also means the code path Phase 8
-//! will persist is already running and already exercised, so that change
-//! becomes "write the snapshot down" rather than "build the job".
+//! claim to be true is to actually look. It also leaves a future history
+//! feature with an already exercised capture path instead of an untested job.
 
 use std::sync::{Arc, Mutex};
 
@@ -46,12 +45,11 @@ pub const SYSTEM_SNAPSHOT_JOB_ID: &str = "system-snapshot";
 /// different meanings for the same number.
 ///
 /// That is harmless today, because the reading is discarded. It stops being
-/// harmless in Phase 8, which persists this figure into `system_snapshots` as
-/// though it were one consistent metric. Resolving it — give this job its own
+/// harmless if a history feature persists this figure as though it were one
+/// consistent metric. Resolving it — give this job its own
 /// monitor and accept a consistent interval-average, or keep sharing and define
-/// the column as "load sampled over an unspecified window" — is an open
-/// question recorded in `product-docs/ARCHITECTURE.md`, to be settled before Phase 8
-/// builds on it.
+/// the column as "load sampled over an unspecified window" — must be settled
+/// before a history feature builds on it.
 pub struct SystemSnapshotJob {
     monitor: Arc<Mutex<SystemMonitor>>,
     settings: Arc<Mutex<SettingsStore>>,
@@ -84,8 +82,8 @@ impl Job for SystemSnapshotJob {
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
 
-            // Dropped on purpose — see the module docs. Phase 8 writes this to
-            // `system_snapshots` instead.
+            // Dropped on purpose — see the module docs. A future history
+            // feature may persist it after the metric semantics are settled.
             let _reading = monitor.snapshot();
         }
 

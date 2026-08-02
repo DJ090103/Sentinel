@@ -21,14 +21,14 @@
 //! - **It under-reported caches of many small files**, which is most of them: a
 //!   100-byte file still occupies a full block. npm's `_npx` read 17% low,
 //!   cargo's `registry/src` 24% low.
-//! - **It hid purged caches entirely.** A directory skeleton with no files left
+//! - **It hid purged caches on Linux.** A directory skeleton with no files left
 //!   measured zero, so callers skipped it — pip's `http-v2` was 9.9 MiB of
 //!   reclaimable blocks in 2,525 empty directories that Sentinel never offered.
 //!
 //! Apparent size was never the conservative choice it looked like. Allocated
 //! blocks answer the question actually being asked — *how much space do I get
 //! back* — and match plain `du`, which is what a user checks against. The
-//! decision is recorded in `product-docs/ARCHITECTURE.md`.
+//! decision is recorded in `docs/ARCHITECTURE.md`.
 
 use std::fs;
 use std::path::Path;
@@ -41,9 +41,11 @@ use crate::PluginError;
 /// `du -sb` — see the module docs for why that changed. Five behaviours, each
 /// deliberate:
 ///
-/// - **Directories count too.** A directory occupies blocks of its own (4 KiB
-///   each on ext4), and `remove_dir_all` frees them. Ignoring them is what made
-///   a purged cache of 2,525 empty directories measure zero.
+/// - **Directories count where the filesystem reports them.** On Linux/ext4 a
+///   directory commonly occupies 4 KiB of its own, and `remove_dir_all` frees
+///   it. APFS reports zero `st_blocks` for empty directories, matching macOS
+///   `du`; Sentinel accepts that conservative zero instead of inventing an
+///   allocation the OS does not expose.
 /// - **Symlinks are counted as the link, never followed.** Following one would
 ///   inflate the figure with data that lives elsewhere and would not be freed
 ///   by removing this directory.
@@ -136,9 +138,9 @@ pub fn file_size(path: &Path) -> Result<u64, PluginError> {
 ///
 /// Plugins use this to decide whether a target is worth offering. It used to be
 /// expressed as `directory_size(path) == 0`, which stopped meaning anything
-/// once sizing counted blocks: every directory that exists occupies its own
-/// block, so *nothing* measures zero on Unix any more and a bun cache that had
-/// never been used would have been offered as a 4 KiB reclaim.
+/// once sizing counted blocks: every directory that exists commonly occupies
+/// its own block on Linux, so a Bun cache that had never been used would have
+/// been offered despite containing nothing.
 ///
 /// The two questions were only ever conflated by accident, and they come apart
 /// in exactly the case that motivated the sizing change — pip's `http-v2` holds
@@ -261,7 +263,7 @@ mod tests {
     /// directories, each occupying blocks that `remove_dir_all` gives back.
     /// Measuring only file lengths reported 9.9 MiB of real space as zero, and
     /// callers skip a zero-sized target.
-    #[cfg(unix)]
+    #[cfg(target_os = "linux")]
     #[test]
     fn a_skeleton_of_empty_directories_is_not_zero() {
         let dir = tempfile::tempdir().expect("temp dir");
@@ -316,18 +318,14 @@ mod tests {
     }
 
     /// The distinction the sizing change turns on: a purged cache is a tree of
-    /// empty directories, which is *not* an empty directory, and its blocks are
-    /// worth reclaiming.
+    /// empty directories, which is *not* an empty directory even on a
+    /// filesystem such as APFS that reports zero allocated blocks for it.
     #[test]
     fn a_tree_of_empty_directories_is_not_itself_empty() {
         let dir = tempfile::tempdir().expect("temp dir");
         fs::create_dir_all(dir.path().join("shard/nested")).expect("create directory");
 
         assert!(!is_empty_directory(dir.path()));
-        assert!(
-            directory_size(dir.path()).expect("walk succeeds") > 0,
-            "and it has space to give back"
-        );
     }
 
     #[test]

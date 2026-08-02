@@ -125,7 +125,7 @@ function SystemCards({ info }: { info: SystemInfo }) {
  * Landing page — live system health at a glance.
  *
  * Values are read fresh from the OS on a short interval and never persisted;
- * see product-docs/ARCHITECTURE.md, "Persistence".
+ * see docs/ARCHITECTURE.md, "Persistence".
  */
 export function DashboardPage() {
   const { data, error, isLoading } = useSystemInfo();

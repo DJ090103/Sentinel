@@ -8,7 +8,7 @@ it. It never cleans anything on its own. You tick what goes, and you
 confirm it.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Platform](https://img.shields.io/badge/platform-Linux-informational)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20dev-informational)
 ![Status](https://img.shields.io/badge/status-early%20release-orange)
 
 ---
@@ -51,10 +51,11 @@ Being straight about this, since the app is young:
 - **No history or trends.** The Insights page is a placeholder.
 - **No Docker, Git, Playwright, Android Studio, Ollama or Hugging Face**
   plugins yet.
-- **Linux only in practice.** The code is cross-platform and macOS or
-  Windows builds should work, but they aren't tested or released.
+- **Linux releases only.** macOS development builds are covered by the test
+  matrix, but signed and notarized macOS artifacts are not released yet.
+  Windows support is deferred.
 
-## Install
+## Install on Linux
 
 ```bash
 sudo apt install ./Sentinel_0.1.0_amd64.deb
@@ -62,6 +63,13 @@ sudo apt install ./Sentinel_0.1.0_amd64.deb
 
 Full instructions for `.deb`, AppImage, `.rpm` and building from source:
 **[docs/INSTALL.md](docs/INSTALL.md)**
+
+macOS developers can run Sentinel from source; published macOS packages will
+follow after signing and notarization are configured.
+
+For maintainers, **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** explains
+the runtime and dependency seams, and **[docs/PLUGIN_SDK.md](docs/PLUGIN_SDK.md)**
+defines the safety contract for adding a tool.
 
 ## Is it safe?
 

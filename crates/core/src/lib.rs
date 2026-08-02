@@ -35,7 +35,7 @@ pub mod database;
 
 /// User-configurable app settings — theme, scheduler interval, last-scan
 /// timestamp — persisted as a single JSON file at the OS config path.
-/// Deliberately not backed by `database`; see `product-docs/ARCHITECTURE.md`.
+/// Deliberately not backed by `database`; see `docs/ARCHITECTURE.md`.
 pub mod settings;
 
 /// In-app notification model — how the scheduler or scanner tells the UI

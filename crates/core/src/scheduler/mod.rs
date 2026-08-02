@@ -4,8 +4,8 @@
 //! The scheduler knows nothing about *what* it runs. It holds [`Job`] trait
 //! objects, so the periodic system snapshot this exists for today and the
 //! periodic plugin scans that come later slot in without changing anything
-//! here. That indirection is the whole point of the module — see the Phase 4
-//! guardrail in `product-docs/EXECUTION_PLAN.md`.
+//! here. That indirection is the whole point of the module; see
+//! `docs/ARCHITECTURE.md`, "Background work".
 //!
 //! Equally deliberately, there is no job priority, no retry policy, and no
 //! backoff. One interval, jobs in registration order, failures recorded and
@@ -14,7 +14,7 @@
 //!
 //! Jobs are *blocking*. Sentinel's work is filesystem-bound — walking cache
 //! directories, stat-ing files — which is blocking I/O whatever syntax wraps
-//! it (see `product-docs/ARCHITECTURE.md`, "The `Plugin` trait is synchronous"). Each
+//! it (see `docs/ARCHITECTURE.md`, "Plugin interface"). Each
 //! job therefore runs on `spawn_blocking` rather than on an async worker, so a
 //! long scan can't stall the runtime.
 
@@ -664,8 +664,8 @@ mod tests {
 
     /// `shutdown` promises to wait for the in-flight tick. Without that, a
     /// shutdown racing the tick body cancels it mid-run and the results are
-    /// lost — invisible for a millisecond-long snapshot, ruinous for the
-    /// multi-second plugin scans of Phase 5.
+    /// lost — invisible for a millisecond-long snapshot, ruinous for any
+    /// future multi-second filesystem job.
     #[tokio::test]
     async fn shutdown_waits_for_a_run_already_in_flight() {
         let (job, counter) = TestJob::new("slow", Behaviour::Slow(Duration::from_millis(200)));

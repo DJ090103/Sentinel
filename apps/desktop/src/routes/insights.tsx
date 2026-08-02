@@ -3,8 +3,8 @@ import { PageHeader } from "@/components/page-header";
 /**
  * Trends over time, and a log of what Sentinel has cleaned.
  *
- * A stub until Phase 8, which is where SQLite is introduced — there is nothing
- * to chart until the scheduler has been recording snapshots for a while.
+ * A stub until a reviewed persistence design records snapshots; there is
+ * nothing honest to chart while Sentinel stores no time series.
  */
 export function InsightsPage() {
   return (
