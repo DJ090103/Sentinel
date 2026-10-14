@@ -3086,7 +3086,7 @@ dependencies = [
 
 [[package]]
 name = "sentinel-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "directories",
@@ -3105,7 +3105,7 @@ dependencies = [
 
 [[package]]
 name = "sentinel-desktop"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "directories",
  "sentinel-core",
@@ -3128,7 +3128,7 @@ dependencies = [
 
 [[package]]
 name = "sentinel-plugin-api"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -3137,7 +3137,7 @@ dependencies = [
 
 [[package]]
 name = "sentinel-plugin-browser"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sentinel-plugin-api",
  "tempfile",
@@ -3145,7 +3145,7 @@ dependencies = [
 
 [[package]]
 name = "sentinel-plugin-bun"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sentinel-plugin-api",
  "tempfile",
@@ -3153,7 +3153,7 @@ dependencies = [
 
 [[package]]
 name = "sentinel-plugin-cargo"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sentinel-plugin-api",
  "tempfile",
@@ -3161,7 +3161,7 @@ dependencies = [
 
 [[package]]
 name = "sentinel-plugin-junk"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sentinel-plugin-api",
  "tempfile",
@@ -3169,7 +3169,7 @@ dependencies = [
 
 [[package]]
 name = "sentinel-plugin-npm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sentinel-plugin-api",
  "tempfile",
@@ -3177,7 +3177,7 @@ dependencies = [
 
 [[package]]
 name = "sentinel-plugin-pip"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sentinel-plugin-api",
  "tempfile",
@@ -3185,7 +3185,7 @@ dependencies = [
 
 [[package]]
 name = "sentinel-plugin-vscode"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "sentinel-plugin-api",
  "tempfile",

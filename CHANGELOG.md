@@ -6,6 +6,8 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-14
+
 ### Added
 - Desktop companion: an optional floating pixel monitor (its own transparent window) that reacts to CPU, memory, open apps, idle time and the app in front. Configure it in Settings (show/hide, name, size, shape, colours, always on top, start at login, thresholds)
 - Dashboard: live CPU and memory charts, a plain-English health verdict, and a usage profile built from which kind of app you use
