@@ -17,6 +17,8 @@ export interface HostInfo {
   osName: string | null;
   osVersion: string | null;
   kernelVersion: string | null;
+  /** Seconds since boot. */
+  uptimeSecs: number;
 }
 
 /** Processor load at the moment of the snapshot. */

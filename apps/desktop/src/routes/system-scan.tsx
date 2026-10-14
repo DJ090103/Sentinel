@@ -2,11 +2,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { Info, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { AnalysisReport } from "@/components/analysis-report";
 import { CleanConfirmation } from "@/components/clean-confirmation";
 import { PageHeader } from "@/components/page-header";
 import { CleanResult, PluginSection, ScanSkeleton } from "@/components/plugin-section";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useHomeAnalysis } from "@/hooks/use-home-analysis";
 import { CleanRejected, usePluginScan } from "@/hooks/use-plugin-scan";
 import {
   defaultSelection,
@@ -72,6 +74,7 @@ export function SystemScanPage() {
     scanOnMount: false,
   });
 
+  const home = useHomeAnalysis();
   const [selections, setSelections] = useState<Record<string, Set<number>>>({});
   const [confirming, setConfirming] = useState<string | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
@@ -187,15 +190,35 @@ export function SystemScanPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        readOnly
         title="System Scan"
         description="Disposable data that isn't any one tool's — thumbnails, the trash, and screenshots you've forgotten."
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button size="sm" disabled={isScanning || isCleaning} onClick={rescan}>
-          <Search aria-hidden="true" className={isScanning ? "animate-pulse" : undefined} />
-          {isScanning ? "Scanning…" : hasScanned ? "Scan again" : "Scan this machine"}
+        <Button
+          size="sm"
+          disabled={isScanning || isCleaning || home.isRunning}
+          onClick={() => {
+            rescan();
+            void home.run();
+          }}
+        >
+          <Search
+            aria-hidden="true"
+            className={isScanning || home.isRunning ? "animate-pulse" : undefined}
+          />
+          {isScanning || home.isRunning
+            ? "Scanning…"
+            : hasScanned
+              ? "Scan again"
+              : "Scan this machine"}
         </Button>
+        {home.isRunning && (
+          <Button size="sm" variant="outline" onClick={home.cancel}>
+            Cancel
+          </Button>
+        )}
         {snapshot !== null && !isScanning && (
           <p className="text-muted-foreground text-sm">
             {formatBytes(totals.found)} reclaimable
@@ -209,15 +232,19 @@ export function SystemScanPage() {
       {!hasScanned && (
         <Card className="gap-2 py-6">
           <CardContent className="space-y-3 px-6">
-            <p className="text-sm font-medium">Nothing has been scanned yet</p>
+            <h2 className="font-display text-2xl font-extrabold tracking-tight">
+              Find out what you can take back
+            </h2>
             <p className="text-muted-foreground text-sm">
-              Scanning looks in three places, and reads only — nothing is removed until you tick it
+              Scanning looks in a few places, and reads only — nothing is removed until you tick it
               and confirm:
             </p>
             <ul className="text-muted-foreground list-inside list-disc space-y-1 text-sm">
               <li>Your thumbnail cache, which your file manager rebuilds on its own</li>
               <li>Your trash, which you&rsquo;ve already emptied into once</li>
               <li>Screenshots older than a month, which are yours and are never pre-ticked</li>
+              <li>Temporary folders, listing only items untouched for a week</li>
+              <li>Your home folder: biggest folders, largest files and duplicates (report only)</li>
             </ul>
             <p className="text-muted-foreground text-sm">
               This is separate from Developer Health because it walks your own folders rather than a
@@ -225,6 +252,24 @@ export function SystemScanPage() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {home.isRunning && (
+        <p className="text-muted-foreground text-sm" role="status">
+          {home.progress?.stage === "duplicates"
+            ? `Step 3 of 3 — comparing large files (${home.progress.files.toLocaleString()} checked)`
+            : `Step 2 of 3 — reading your home folder (${(home.progress?.files ?? 0).toLocaleString()} files)`}
+        </p>
+      )}
+
+      {home.error !== null && (
+        <div
+          role="alert"
+          className="border-destructive/50 bg-destructive/10 text-destructive rounded-lg border px-4 py-3 text-sm"
+        >
+          <p className="font-medium">Couldn&rsquo;t analyze your home folder</p>
+          <p className="mt-1 break-words opacity-90">{home.error}</p>
+        </div>
       )}
 
       {error !== null && (
@@ -293,6 +338,8 @@ export function SystemScanPage() {
       })}
 
       {hasScanned && <Explanations groups={explanations} />}
+
+      {home.analysis !== null && <AnalysisReport analysis={home.analysis} />}
     </div>
   );
 }

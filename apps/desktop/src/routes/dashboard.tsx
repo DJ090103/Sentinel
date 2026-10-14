@@ -1,11 +1,19 @@
 import { Clock, Cpu, HardDrive, MemoryStick, Monitor, Server } from "lucide-react";
 
+import { Flame } from "lucide-react";
+
+import { AreaChart } from "@/components/area-chart";
+import { DiskHero } from "@/components/disk-hero";
 import { PageHeader } from "@/components/page-header";
+import { ProfileCard } from "@/components/profile-card";
 import { StatCard, UnknownValue } from "@/components/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
+import { useInsights } from "@/hooks/use-insights";
+import { cleanStreak } from "@/lib/insights";
 import { useLastScan } from "@/hooks/use-last-scan";
 import { SYSTEM_INFO_POLL_MS, useSystemInfo } from "@/hooks/use-system-info";
 import { formatScanTime } from "@/lib/events";
+import { summarizeHealth, type HealthLevel } from "@/lib/health";
 import { formatBytes, usedPercent, type SystemInfo } from "@/lib/system-info";
 
 /**
@@ -45,6 +53,78 @@ function LastScanNotice() {
       {failure !== null && (
         <span className="text-destructive">The most recent one failed: {failure}</span>
       )}
+    </div>
+  );
+}
+
+/**
+ * The reward line: what's been reclaimed and the streak, on the first screen.
+ * Silent if history is unavailable; the Insights page explains why.
+ */
+function RewardStrip() {
+  const { data } = useInsights();
+  if (data === null || data.cleanCount === 0) {
+    return null;
+  }
+  const streak = cleanStreak(data.cleanups);
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <span className="bg-secondary rounded-full px-4 py-2 text-sm font-bold">
+        {formatBytes(data.totalReclaimedBytes)} reclaimed so far
+      </span>
+      {streak > 0 && (
+        <span className="bg-secondary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold">
+          <Flame aria-hidden="true" className="text-primary size-4" />
+          {streak}-day streak
+        </span>
+      )}
+    </div>
+  );
+}
+
+const LEVEL_STYLE: Record<HealthLevel, string> = {
+  good: "bg-success",
+  warn: "bg-primary",
+  bad: "bg-destructive",
+};
+
+/** Plain-English verdict plus the live CPU and memory charts. */
+function HealthPanel({ info }: { info: SystemInfo }) {
+  const { history } = useSystemInfo();
+  const health = summarizeHealth(info, history);
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <Card className="gap-3">
+        <CardContent className="space-y-3">
+          <h2 className="font-display text-2xl font-extrabold tracking-tight">{health.headline}</h2>
+          <ul className="space-y-2">
+            {health.points.map((p) => (
+              <li key={p.text} className="flex items-start gap-3 text-sm">
+                <span
+                  aria-hidden="true"
+                  className={`${LEVEL_STYLE[p.level]} mt-1.5 size-2.5 shrink-0 rounded-full`}
+                />
+                <span>{p.text}</span>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
+      <Card className="gap-3">
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-muted-foreground text-sm font-bold">CPU, last 5 minutes</p>
+            <AreaChart data={history.map((p) => p.cpu)} color="var(--primary)" label="CPU" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-muted-foreground text-sm font-bold">Memory, last 5 minutes</p>
+            <AreaChart data={history.map((p) => p.mem)} color="var(--success)" label="Memory" />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -132,10 +212,16 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Dashboard"
-        description={`Live system health for this workstation, refreshed every ${SYSTEM_INFO_POLL_MS / 1000} seconds.`}
-      />
+      {data?.disk ? (
+        <DiskHero disk={data.disk} />
+      ) : (
+        <PageHeader
+          title="Dashboard"
+          description={`Live system health for this workstation, refreshed every ${SYSTEM_INFO_POLL_MS / 1000} seconds.`}
+        />
+      )}
+
+      <RewardStrip />
 
       <LastScanNotice />
 
@@ -155,7 +241,9 @@ export function DashboardPage() {
       )}
 
       {isLoading && <DashboardSkeleton />}
+      {data !== null && <HealthPanel info={data} />}
       {data !== null && <SystemCards info={data} />}
+      <ProfileCard />
     </div>
   );
 }

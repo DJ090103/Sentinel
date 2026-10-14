@@ -6,9 +6,9 @@ import {
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { NavLink } from "react-router";
 
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -51,8 +51,8 @@ export function AppSidebar() {
         */}
         <img src="/logo.png" alt="" aria-hidden="true" className="size-8 shrink-0" />
         <div className="min-w-0">
-          <p className="font-semibold tracking-tight">Sentinel</p>
-          <p className="text-muted-foreground text-xs">Workstation companion</p>
+          <p className="font-display text-lg font-extrabold tracking-tight">Sentinel</p>
+          <p className="text-muted-foreground text-xs">Takes back your disk space</p>
         </div>
       </div>
 
@@ -64,13 +64,26 @@ export function AppSidebar() {
             end={end}
             className={({ isActive }) =>
               cn(
-                buttonVariants({ variant: isActive ? "secondary" : "ghost", size: "sm" }),
-                "w-full justify-start gap-2",
+                "group focus-visible:ring-ring relative flex h-11 items-center gap-3 rounded-2xl px-4 text-sm font-bold outline-none transition-colors focus-visible:ring-[3px]",
+                isActive
+                  ? "text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )
             }
           >
-            <Icon aria-hidden="true" />
-            {label}
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    className="bg-primary absolute inset-0 -z-0 rounded-2xl shadow-[0_3px_0_0_var(--primary-edge)]"
+                    transition={{ type: "spring", stiffness: 500, damping: 38 }}
+                  />
+                )}
+                <Icon aria-hidden="true" className="relative size-5" />
+                <span className="relative">{label}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>

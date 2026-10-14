@@ -1,6 +1,7 @@
 import { createHashRouter } from "react-router";
 
 import App from "@/App";
+import { CompanionPage } from "@/routes/companion";
 import { DashboardPage } from "@/routes/dashboard";
 import { DeveloperHealthPage } from "@/routes/developer-health";
 import { InsightsPage } from "@/routes/insights";
@@ -19,6 +20,8 @@ import { SystemScanPage } from "@/routes/system-scan";
  * window with no address bar. See product-docs/ARCHITECTURE.md, "Routing".
  */
 export const router = createHashRouter([
+  // The companion window: no sidebar, no page chrome.
+  { path: "/companion", element: <CompanionPage /> },
   {
     path: "/",
     element: <App />,

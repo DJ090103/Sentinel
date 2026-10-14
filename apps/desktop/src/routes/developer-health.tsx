@@ -122,8 +122,9 @@ export function DeveloperHealthPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        readOnly
         title="Developer Health"
-        description="What your toolchain is costing in disk space and cache."
+        description="Your npm, pip, Cargo, Bun, VS Code and browser caches, and exactly what each one is costing you."
       />
 
       <div className="flex flex-wrap items-center gap-3">
