@@ -1,0 +1,27 @@
+name: Publish release
+
+# Publishes the draft release for a tag. Triggered by pushing a branch named
+# `publish/<tag>`, e.g. `publish/v0.2.0`, so a release can be published
+# without a person clicking through the web UI.
+on:
+  push:
+    branches:
+      - "publish/**"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          tag="${BRANCH#publish/}"
+          gh release list --repo "$REPO" --limit 20
+          gh release edit "$tag" --repo "$REPO" --draft=false --latest
+          gh release view "$tag" --repo "$REPO" --json tagName,isDraft,assets
