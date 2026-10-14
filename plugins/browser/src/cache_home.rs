@@ -55,6 +55,7 @@ fn resolve_from(
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
     fn os(path: &std::path::Path) -> Option<OsString> {
         Some(path.as_os_str().to_owned())
     }

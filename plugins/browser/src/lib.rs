@@ -268,6 +268,8 @@ fn human_bytes(bytes: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    // Only the Linux-gated tests below clean anything.
+    #[cfg(all(unix, not(target_os = "macos")))]
     use sentinel_plugin_api::clean;
     use std::fs;
 
