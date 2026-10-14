@@ -52,6 +52,38 @@ pub fn screenshots() -> Result<PathBuf, PluginError> {
     screenshots_from(env::var_os("HOME"))
 }
 
+/// Resolves the directories holding the user's temporary files.
+///
+/// - Linux: `/tmp` and `/var/tmp`
+/// - Windows: `%TEMP%` (the per-user temp folder)
+///
+/// Only roots that exist and pass [`validate_tool_directory`] are returned.
+/// Windows' machine-wide `C:\Windows\Temp` is deliberately absent: it needs
+/// elevation and is handled separately.
+pub fn temp_roots() -> Vec<PathBuf> {
+    let candidates: Vec<PathBuf> = if cfg!(target_os = "linux") {
+        vec![PathBuf::from("/tmp"), PathBuf::from("/var/tmp")]
+    } else if cfg!(windows) {
+        env::var_os("TEMP").map(PathBuf::from).into_iter().collect()
+    } else {
+        Vec::new()
+    };
+
+    candidates
+        .into_iter()
+        .filter(|path| validate_tool_directory(path).is_ok())
+        .collect()
+}
+
+/// Resolves `%LOCALAPPDATA%`, which holds the Windows caches. `None` elsewhere.
+pub fn local_app_data() -> Option<PathBuf> {
+    if !cfg!(windows) {
+        return None;
+    }
+    let path = env::var_os("LOCALAPPDATA").map(PathBuf::from)?;
+    validate_tool_directory(&path).ok().map(|()| path)
+}
+
 fn cache_home_from(
     xdg_cache_home: Option<OsString>,
     home: Option<OsString>,
