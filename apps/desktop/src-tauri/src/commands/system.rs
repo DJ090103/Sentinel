@@ -16,20 +16,14 @@ use tauri::State;
 /// from multiple threads. Contention is a non-issue — one caller, every couple
 /// of seconds, holding the lock for microseconds.
 ///
-/// An `Arc` around it because the background snapshot job holds the same
-/// monitor: one refresh cycle on the machine rather than two competing ones.
-/// See `background` for the CPU-sampling caveat that sharing brings with it.
+/// The background snapshot job deliberately has its own monitor, so stored CPU
+/// readings are interval averages rather than the dashboard's 2-second windows.
 pub struct SystemMonitorState(pub Arc<Mutex<SystemMonitor>>);
 
 impl SystemMonitorState {
     /// Builds the state, taking the monitor's initial baseline reading.
     pub fn new() -> Self {
         Self(Arc::new(Mutex::new(SystemMonitor::new())))
-    }
-
-    /// A second owner of the same monitor, for the background job.
-    pub fn shared(&self) -> Arc<Mutex<SystemMonitor>> {
-        Arc::clone(&self.0)
     }
 }
 

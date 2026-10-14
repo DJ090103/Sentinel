@@ -1,5 +1,6 @@
 mod background;
 mod commands;
+mod companion;
 mod plugins;
 
 use background::SettingsState;
@@ -12,13 +13,16 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         // Constructed once at startup rather than per invocation, so each CPU
         // reading is measured against the previous poll. See `commands::system`.
         .manage(SystemMonitorState::new())
+        .manage(commands::analysis::AnalysisState::default())
         .setup(|app| {
-            let monitor = app.state::<SystemMonitorState>().shared();
-
-            match background::start(app.handle(), monitor) {
+            match background::start(app.handle()) {
                 // Held in managed state for the lifetime of the app: dropping
                 // the handle aborts the scheduler, so letting it fall out of
                 // scope here would stop the loop the moment setup returned.
@@ -59,6 +63,21 @@ pub fn run() {
 
             app.manage(PluginState::new(retention));
 
+            // The sensor loop runs from here on; the companion window appears
+            // only if settings say it is enabled.
+            companion::start(app.handle());
+            if let Some(cfg) = app.try_state::<SettingsState>().map(|s| {
+                s.0.lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .settings()
+                    .companion
+                    .clone()
+            }) {
+                if let Err(cause) = companion::apply(app.handle(), &cfg.sanitized()) {
+                    eprintln!("Sentinel: could not open the companion: {cause}");
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -66,7 +85,15 @@ pub fn run() {
             commands::scheduler::get_last_scan_at,
             commands::plugins::scan_plugins,
             commands::plugins::get_recommendations,
-            commands::plugins::clean_targets
+            commands::plugins::clean_targets,
+            commands::analysis::analyze_home,
+            commands::analysis::cancel_analysis,
+            commands::insights::get_insights,
+            commands::companion::get_companion_settings,
+            commands::companion::set_companion_settings,
+            commands::companion::companion_moved,
+            commands::companion::hide_companion,
+            commands::companion::get_usage
         ])
         .run(tauri::generate_context!())
         // Not an "infallible" expect: this is an unrecoverable startup failure.

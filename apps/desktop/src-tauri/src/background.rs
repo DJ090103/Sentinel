@@ -76,6 +76,21 @@ impl From<sentinel_core::scheduler::SchedulerError> for StartupError {
 /// other's fields on the next write.
 pub struct SettingsState(pub Arc<Mutex<SettingsStore>>);
 
+/// The history database, shared by the snapshot job (writes), the clean command
+/// (writes) and the Insights command (reads).
+pub struct DatabaseState(pub Arc<Mutex<sentinel_core::database::Connection>>);
+
+fn open_history() -> Option<sentinel_core::database::Connection> {
+    let path = sentinel_core::database::default_path()?;
+    match sentinel_core::database::open(&path) {
+        Ok(conn) => Some(conn),
+        Err(cause) => {
+            eprintln!("Sentinel: {cause}");
+            None
+        }
+    }
+}
+
 /// Loads the settings, moving a file that doesn't parse aside rather than
 /// overwriting it.
 ///
@@ -117,10 +132,7 @@ fn load_settings() -> Result<(SettingsStore, Option<PathBuf>), SettingsError> {
 ///
 /// The returned handle must be kept alive: dropping it aborts the loop. The
 /// caller hands it to Tauri's managed state, which lives as long as the app.
-pub fn start<R: Runtime>(
-    app: &AppHandle<R>,
-    monitor: Arc<Mutex<SystemMonitor>>,
-) -> Result<SchedulerHandle, StartupError> {
+pub fn start<R: Runtime>(app: &AppHandle<R>) -> Result<SchedulerHandle, StartupError> {
     let (store, preserved) = load_settings()?;
 
     if let Some(path) = preserved {
@@ -136,7 +148,25 @@ pub fn start<R: Runtime>(
     app.manage(SettingsState(Arc::clone(&settings)));
 
     let mut scheduler = Scheduler::new(interval);
-    scheduler.register(Arc::new(SystemSnapshotJob::new(monitor, settings)))?;
+    // Its own monitor, not the dashboard's: stored CPU readings must all be
+    // averages over the job interval, not whatever window the dashboard's
+    // two-second polling left behind.
+    let monitor = Arc::new(Mutex::new(SystemMonitor::new()));
+    let mut job = SystemSnapshotJob::new(monitor, settings);
+
+    // History is optional: without a database the job still records its
+    // timestamp and Insights simply shows nothing.
+    match open_history() {
+        Some(conn) => {
+            let conn = Arc::new(Mutex::new(conn));
+            app.manage(DatabaseState(Arc::clone(&conn)));
+            job = job.with_history(conn);
+        }
+        None => {
+            eprintln!("Sentinel: history is disabled because the database could not be opened.")
+        }
+    }
+    scheduler.register(Arc::new(job))?;
 
     // `Scheduler::spawn` calls `tokio::spawn`, which panics unless a runtime is
     // entered. Tauri's setup hook doesn't run inside one, so borrow the handle

@@ -7,6 +7,9 @@
 // The `#[tauri::command]` macro emits hidden helper items next to each command
 // function, and a `pub use` of the function alone doesn't bring those along —
 // the handler macro then can't find them.
+pub mod analysis;
+pub mod companion;
+pub mod insights;
 pub mod plugins;
 pub mod scheduler;
 pub mod system;

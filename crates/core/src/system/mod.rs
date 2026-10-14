@@ -39,6 +39,8 @@ pub struct HostInfo {
     pub os_version: Option<String>,
     /// Kernel version, e.g. `6.8.0-40-generic`.
     pub kernel_version: Option<String>,
+    /// Seconds since the machine booted, for the "a restart would help" hint.
+    pub uptime_secs: u64,
 }
 
 /// Processor load at the moment of the snapshot.
@@ -155,6 +157,7 @@ impl SystemMonitor {
                 os_name: System::name(),
                 os_version: System::os_version(),
                 kernel_version: System::kernel_version(),
+                uptime_secs: System::uptime(),
             },
             cpu: CpuInfo {
                 usage_percent: self.system.global_cpu_usage(),
@@ -293,6 +296,7 @@ mod tests {
                 os_name: None,
                 os_version: None,
                 kernel_version: None,
+                uptime_secs: 3600,
             },
             cpu: CpuInfo {
                 usage_percent: 12.5,
