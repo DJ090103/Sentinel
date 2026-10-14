@@ -442,7 +442,16 @@ mod tests {
             return;
         };
 
-        assert!(path.ends_with("sentinel/settings.json"), "got {path:?}");
+        // Compared by component, not as a string: Windows separates with `\`
+        // and puts a `config` directory in between.
+        assert_eq!(
+            path.file_name().and_then(|n| n.to_str()),
+            Some("settings.json")
+        );
+        assert!(
+            path.components().any(|c| c.as_os_str() == "sentinel"),
+            "got {path:?}"
+        );
     }
 
     #[test]
