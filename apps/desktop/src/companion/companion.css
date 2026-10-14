@@ -1,0 +1,281 @@
+/* The companion window is transparent: only the pixel monitor is drawn. */
+html.companion,
+html.companion body,
+html.companion #root {
+  margin: 0;
+  height: 100%;
+  background: transparent !important;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+.stage {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  touch-action: none;
+}
+.tag {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  overflow: hidden;
+}
+.tag span {
+  max-width: 100%;
+  padding: 0.15em 0.6em;
+  border-radius: 999px;
+  background: rgba(10, 21, 23, 0.78);
+  font:
+    700 1em ui-monospace,
+    "DejaVu Sans Mono",
+    monospace;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  text-shadow: 0 0 6px currentColor;
+}
+.x {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(10, 21, 23, 0.85);
+  color: #fff;
+  font: 11px/20px sans-serif;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.stage:hover .x,
+.x:focus-visible {
+  opacity: 1;
+}
+.x:hover {
+  background: #ff4d5a;
+}
+.stage:active {
+  cursor: grabbing;
+}
+svg.monitor {
+  display: block;
+  overflow: visible;
+  image-rendering: pixelated;
+}
+
+/* All motion is stepped so it reads as pixel animation. Units are art pixels. */
+@keyframes bob {
+  50% {
+    transform: translateY(-1px);
+  }
+}
+@keyframes snooze {
+  50% {
+    transform: translateY(0.5px);
+  }
+}
+@keyframes shake {
+  0% {
+    transform: translate(-0.5px, 0);
+  }
+  50% {
+    transform: translate(0.5px, 0.5px);
+  }
+  100% {
+    transform: translate(-0.5px, 0);
+  }
+}
+@keyframes pop {
+  0% {
+    transform: translateY(1px);
+  }
+  40% {
+    transform: translateY(-2px);
+  }
+  100% {
+    transform: none;
+  }
+}
+.bob {
+  animation: bob 2.4s steps(2, jump-none) infinite;
+}
+.snooze {
+  animation: snooze 3.6s steps(2, jump-none) infinite;
+}
+.shake {
+  animation: shake 0.16s steps(2, jump-none) infinite;
+}
+.pop {
+  animation: pop 0.28s steps(4) 1;
+}
+
+@keyframes rise {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-9px);
+    opacity: 0;
+  }
+}
+@keyframes drip {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+@keyframes waft {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes zz {
+  0% {
+    transform: translate(0, 3px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(2px, -3px);
+    opacity: 0;
+  }
+}
+@keyframes gust {
+  0% {
+    transform: translateX(-4px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(36px);
+    opacity: 0;
+  }
+}
+@keyframes flicker {
+  50% {
+    transform: translateY(-1px) scaleY(1.08);
+  }
+}
+@keyframes throb {
+  50% {
+    transform: scale(1.25);
+  }
+}
+@keyframes glitch {
+  0%,
+  100% {
+    transform: translateX(0) translate(6px, 16px);
+  }
+  50% {
+    transform: translateX(2px) translate(6px, 16px);
+  }
+}
+@keyframes bubble {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+.rise {
+  animation: rise 2.4s steps(9) infinite;
+}
+.drip {
+  animation: drip 2s steps(8) infinite;
+}
+.waft {
+  animation: waft 1.8s steps(6) infinite;
+}
+.puff {
+  animation: waft 2.2s steps(6) infinite;
+}
+.twinkle {
+  animation: twinkle 1.6s steps(4) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.zz {
+  animation: zz 3s steps(8) infinite;
+}
+.gust {
+  animation: gust 1.6s steps(12) infinite;
+}
+.flicker {
+  animation: flicker 0.4s steps(2, jump-none) infinite;
+  transform-box: fill-box;
+  transform-origin: bottom;
+}
+.throb {
+  animation: throb 0.5s steps(2, jump-none) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.glitch {
+  animation: glitch 0.3s steps(2, jump-none) infinite;
+}
+.bubble {
+  animation: bubble 1.2s steps(2, jump-none) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bob,
+  .snooze,
+  .shake,
+  .rise,
+  .drip,
+  .waft,
+  .puff,
+  .zz,
+  .gust {
+    animation: none;
+  }
+}

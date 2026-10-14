@@ -6,7 +6,15 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-14
+
 ### Added
+- Desktop companion: an optional floating pixel monitor (its own transparent window) that reacts to CPU, memory, open apps, idle time and the app in front. Configure it in Settings (show/hide, name, size, shape, colours, always on top, start at login, thresholds)
+- Dashboard: live CPU and memory charts, a plain-English health verdict, and a usage profile built from which kind of app you use
+- Redesigned interface: indigo-and-gold theme, chunky tactile buttons, animated navigation and page transitions, a disk ring on the dashboard, and a celebratory result when a clean finishes (all respect reduced motion)
+- Insights page: total reclaimed, cleaning streak, 30-day disk usage trend and cleanup history, backed by a local SQLite database the background job writes to
+- System Scan: one button now also analyzes your home folder (biggest folders, largest files, exact duplicates) with live progress and cancel; report only, nothing is deleted
+- System Scan lists old temp files (`/tmp`, `/var/tmp`, `%TEMP%`) and Windows caches for review; nothing is ticked for you
 - Workspace scaffold: `apps/desktop` (Tauri + React), `crates/core`, `crates/plugin-api`
 - CI (fmt, clippy, test, frontend lint/build)
 - Project documentation structure (`docs/`)

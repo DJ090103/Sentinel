@@ -39,14 +39,17 @@
 //!   screenshot taken a minute ago".
 //! - **Never pre-ticked**, because these are the user's own files, not a cache.
 //!
-//! # What is deliberately *not* offered: `/tmp`
+//! # 4. Temp folders — safe by age, and by the user's review
 //!
-//! `/tmp` is the obvious thing to expect here and this plugin will not delete
-//! from it. It holds live sockets, lock files and directories belonging to
-//! processes that are running right now, and deciding which of those is
-//! disposable needs to know what has them open — which this plugin cannot know
-//! and will not guess. [`Plugin::recommend`] explains that in the UI, and
-//! [`Plugin::scan`] returns no target for it. See [`TMP_EXPLANATION`].
+//! `/tmp` and `/var/tmp` on Linux, `%TEMP%` on Windows. Unlike the sources
+//! above these hold other programs' live working files, so each top-level item
+//! is proposed individually and only if it is owned by the user, is not a
+//! symlink, and nothing inside it changed in [`TEMP_MIN_AGE_DAYS`]. Never
+//! pre-ticked. See [`TMP_EXPLANATION`].
+//!
+//! Windows caches under `%LOCALAPPDATA%` follow the closed-list model. System
+//! locations that need elevation (`C:\Windows\Temp`, Windows Update) are not
+//! handled here.
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
@@ -75,12 +78,50 @@ pub const MIN_RETENTION_DAYS: u32 = 7;
 /// The retention age used when nothing is configured.
 pub const DEFAULT_RETENTION_DAYS: u32 = 30;
 
-/// What the UI shows about `/tmp`, in place of any target.
+/// Temp items untouched for less than this many days are never offered.
+///
+/// Temp folders hold working files of programs running right now. Age is the
+/// only in-use signal that works the same on Linux and Windows, so recent
+/// activity anywhere in an item keeps it off the list.
+pub const TEMP_MIN_AGE_DAYS: u64 = 7;
+
+/// At most this many temp items are listed (largest first), so a folder with
+/// tens of thousands of entries cannot flood the review screen.
+const MAX_TEMP_TARGETS: usize = 300;
+
+/// What the UI shows about temp folders.
 pub const TMP_EXPLANATION: &str =
-    "Sentinel does not delete from /tmp. It holds sockets, lock files and working directories \
-     belonging to programs that are running right now, and knowing which of those is safe to \
-     remove means knowing what has them open. Linux already clears /tmp for you — on most \
-     systems at every reboot, and otherwise on a timer.";
+    "Temporary folders hold working files of programs that are running right now. Sentinel only \
+     lists items nothing has touched for a week, never follows links, and never ticks them for \
+     you. Anything still in use is skipped by the operating system and reported, not forced.";
+
+/// Windows cache directories under `%LOCALAPPDATA%`; same shape as the others.
+const WINDOWS_CACHES: &[KnownDirectory] = &[
+    KnownDirectory {
+        components: &["Microsoft", "Windows", "INetCache"],
+        label: "Internet cache (Windows)",
+        risk: TargetRisk::Safe,
+        note: "Downloaded web content cached by Windows and Edge components. Re-downloaded when needed.",
+    },
+    KnownDirectory {
+        components: &["Microsoft", "Windows", "WER"],
+        label: "Windows error reports",
+        risk: TargetRisk::Review,
+        note: "Crash reports queued for Microsoft. Useful only if you are debugging a crash.",
+    },
+    KnownDirectory {
+        components: &["CrashDumps"],
+        label: "Application crash dumps",
+        risk: TargetRisk::Review,
+        note: "Memory dumps left by crashed programs. Large and rarely needed.",
+    },
+    KnownDirectory {
+        components: &["D3DSCache"],
+        label: "DirectX shader cache",
+        risk: TargetRisk::Safe,
+        note: "Compiled graphics shaders. Rebuilt on demand; games may stutter once afterwards.",
+    },
+];
 
 /// Extensions a screenshot may have. Anything else in the folder is left alone.
 const SCREENSHOT_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp"];
@@ -173,6 +214,8 @@ struct Roots {
     cache_home: Option<PathBuf>,
     data_home: Option<PathBuf>,
     screenshots: Option<PathBuf>,
+    temp_roots: Vec<PathBuf>,
+    local_app_data: Option<PathBuf>,
 }
 
 impl JunkPlugin {
@@ -200,8 +243,19 @@ impl JunkPlugin {
                 cache_home,
                 data_home,
                 screenshots,
+                temp_roots: Vec::new(),
+                local_app_data: None,
             }),
         }
+    }
+
+    /// Adds temp roots and a Windows app-data root to a test plugin.
+    pub fn with_temp(mut self, temp_roots: Vec<PathBuf>, local_app_data: Option<PathBuf>) -> Self {
+        if let Some(roots) = self.roots_override.as_mut() {
+            roots.temp_roots = temp_roots;
+            roots.local_app_data = local_app_data;
+        }
+        self
     }
 
     /// The retention age actually applied, floor included.
@@ -220,6 +274,8 @@ impl JunkPlugin {
                 cache_home: locations::cache_home().ok(),
                 data_home: locations::data_home().ok(),
                 screenshots: locations::screenshots().ok(),
+                temp_roots: locations::temp_roots(),
+                local_app_data: locations::local_app_data(),
             },
         }
     }
@@ -259,6 +315,72 @@ impl JunkPlugin {
                 format!("{} — {}", entry.label, entry.note),
                 size,
                 entry.risk,
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Proposes each old, user-owned top-level item of a temp folder.
+    ///
+    /// Per-item rather than whole-folder, so the user reviews exactly what goes.
+    /// An item is skipped if it is a symlink, is not ours (Linux), or anything
+    /// inside it changed within [`TEMP_MIN_AGE_DAYS`].
+    fn scan_temp(&self, root: &Path, targets: &mut Vec<CleanTarget>) -> Result<(), PluginError> {
+        let Some(cutoff) =
+            SystemTime::now().checked_sub(Duration::from_secs(TEMP_MIN_AGE_DAYS * 24 * 60 * 60))
+        else {
+            return Ok(());
+        };
+
+        let entries = std::fs::read_dir(root).map_err(PluginError::Io)?;
+        let mut found: Vec<(PathBuf, u64, bool)> = Vec::new();
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let Ok(metadata) = std::fs::symlink_metadata(&path) else {
+                continue;
+            };
+            if metadata.file_type().is_symlink() || !(metadata.is_file() || metadata.is_dir()) {
+                continue;
+            }
+            if !owned_by_current_user(&metadata) {
+                continue;
+            }
+            match newest_modified(&path) {
+                Some(newest) if newest < cutoff => {}
+                _ => continue,
+            }
+
+            let size = if metadata.is_dir() {
+                directory_size(&path)?
+            } else {
+                file_size(&path)?
+            };
+            if size > 0 {
+                found.push((path, size, metadata.is_dir()));
+            }
+        }
+
+        found.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0)));
+        found.truncate(MAX_TEMP_TARGETS);
+
+        for (path, size, is_dir) in found {
+            let name = path
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| path.display().to_string());
+            let kind = if is_dir { "folder" } else { "file" };
+
+            targets.push(CleanTarget::new(
+                PLUGIN_ID,
+                path,
+                format!(
+                    "{name} — temporary {kind} untouched for {TEMP_MIN_AGE_DAYS}+ days. Check \
+                     nothing you need is stored here."
+                ),
+                size,
+                TargetRisk::Review,
             ));
         }
 
@@ -348,8 +470,8 @@ impl Plugin for JunkPlugin {
         PluginMetadata {
             id: PLUGIN_ID,
             name: "System junk",
-            description: "Thumbnail caches, the trash, and screenshots you've long forgotten. \
-                          Never /tmp.",
+            description: "Thumbnail and OS caches, temp folders, the trash, and screenshots \
+                          you've long forgotten. You review every item before it goes.",
         }
     }
 
@@ -366,13 +488,24 @@ impl Plugin for JunkPlugin {
         if let Some(screenshots) = &roots.screenshots {
             self.scan_screenshots(screenshots, &mut targets)?;
         }
+        if let Some(local) = &roots.local_app_data {
+            self.scan_directories(local, WINDOWS_CACHES, &mut targets)?;
+        }
+        for temp in &roots.temp_roots {
+            self.scan_temp(temp, &mut targets)?;
+        }
 
         // Every source missing means this platform isn't supported, or the
         // user's home has none of these directories. Reported as "not
         // applicable" rather than as an empty success, so the UI can say why.
-        if roots.cache_home.is_none() && roots.data_home.is_none() && roots.screenshots.is_none() {
+        if roots.cache_home.is_none()
+            && roots.data_home.is_none()
+            && roots.screenshots.is_none()
+            && roots.local_app_data.is_none()
+            && roots.temp_roots.is_empty()
+        {
             return Err(PluginError::ToolUnavailable {
-                detail: "none of the thumbnail cache, trash or screenshots directories were \
+                detail: "none of the junk locations (caches, trash, screenshots, temp) were \
                          found for this user"
                     .to_owned(),
             });
@@ -390,7 +523,7 @@ impl Plugin for JunkPlugin {
         // absence the user would otherwise read as a bug. This is the only
         // route by which the /tmp reasoning reaches the screen.
         recommendations.push(Recommendation {
-            title: "Temporary files in /tmp are left alone".to_owned(),
+            title: "Temporary files are listed only when a week old".to_owned(),
             detail: TMP_EXPLANATION.to_owned(),
             reclaimable_bytes: 0,
             risk: TargetRisk::Destructive,
@@ -475,6 +608,35 @@ impl Plugin for JunkPlugin {
 
         Ok(outcome)
     }
+}
+
+/// The most recent modification time anywhere under `path` (symlinks are not
+/// followed). `None` if the item itself cannot be read.
+fn newest_modified(path: &Path) -> Option<SystemTime> {
+    let metadata = std::fs::symlink_metadata(path).ok()?;
+    let mut newest = metadata.modified().ok()?;
+    if metadata.is_dir() {
+        for entry in std::fs::read_dir(path).ok()?.flatten() {
+            // An unreadable child counts as "just changed": when unsure, keep it.
+            newest = newest.max(newest_modified(&entry.path()).unwrap_or_else(SystemTime::now));
+        }
+    }
+    Some(newest)
+}
+
+/// Whether the item belongs to the user running Sentinel. `/tmp` is shared, so
+/// other users' (and root's) items must never be proposed.
+#[cfg(target_os = "linux")]
+fn owned_by_current_user(metadata: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    // `/proc/self` is owned by the process's own uid.
+    std::fs::metadata("/proc/self").is_ok_and(|me| me.uid() == metadata.uid())
+}
+
+/// Windows temp is per-user already; other platforms have no temp roots.
+#[cfg(not(target_os = "linux"))]
+fn owned_by_current_user(_metadata: &std::fs::Metadata) -> bool {
+    true
 }
 
 /// Whether a path ends in one of the extensions a screenshot may have.
@@ -584,6 +746,48 @@ mod tests {
             fs::write(path.join("blob"), vec![b'x'; bytes]).expect("write blob");
             self
         }
+    }
+
+    #[test]
+    fn only_old_temp_items_are_proposed() {
+        let fixture = fixture();
+        let temp = fixture._root.path().join("tmp");
+        fs::create_dir_all(temp.join("old_dir")).expect("dir");
+        write_aged(&temp.join("old_dir").join("a"), 100, 30);
+        write_aged(&temp.join("old_file"), 100, 30);
+        write_aged(&temp.join("fresh_file"), 100, 1);
+        fs::create_dir_all(temp.join("live_dir")).expect("dir");
+        write_aged(&temp.join("live_dir").join("old"), 100, 30);
+        fs::write(temp.join("live_dir").join("new"), b"x").expect("fresh child");
+        // A directory's own mtime changes when entries are added, so it must
+        // be backdated as well for the fixture to look genuinely old.
+        for dir in [temp.join("old_dir"), temp.join("live_dir")] {
+            let handle = fs::File::open(&dir).expect("open dir");
+            if dir.ends_with("old_dir") {
+                handle.set_modified(days_ago(30)).expect("backdate dir");
+            }
+        }
+
+        let scan = fixture
+            .plugin(30)
+            .with_temp(vec![temp], None)
+            .scan()
+            .expect("scan succeeds");
+
+        let mut names: Vec<_> = scan
+            .targets
+            .iter()
+            .map(|t| {
+                t.path()
+                    .file_name()
+                    .expect("name")
+                    .to_string_lossy()
+                    .into_owned()
+            })
+            .collect();
+        names.sort();
+        assert_eq!(names, ["old_dir", "old_file"]);
+        assert!(scan.targets.iter().all(|t| !t.risk.may_be_preselected()));
     }
 
     #[test]

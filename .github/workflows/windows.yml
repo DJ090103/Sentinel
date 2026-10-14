@@ -1,0 +1,117 @@
+name: Windows installer
+
+# Builds the Windows 11 installers (NSIS .exe and .msi) on a real Windows
+# runner. A Windows installer cannot be produced on Linux without a
+# cross-compilation toolchain, so this is where the .exe comes from.
+#
+# Runs on pushes to `feat/**` branches, on `v*` tags, or by hand from the
+# Actions tab. The installers are attached to the run as an artifact; a tag
+# push also adds them to a draft release.
+on:
+  workflow_dispatch:
+  # Feature branches build an installer artifact on every push, so a branch can
+  # be tried on Windows before it is merged. No release is created from these.
+  push:
+    branches:
+      - "feat/**"
+    tags:
+      - "v*"
+
+# Read-only by default; only the release job below can write.
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Build Windows installers
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The Windows-only code (foreground-app detection) is compiled here for
+      # the first time, so these gates are what actually check it.
+      - name: Clippy (deny warnings)
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo clippy --workspace --all-targets --message-format=short -- -D warnings 2>&1 | tee clippy.log
+
+      # Surfaces the compiler errors as annotations on the run page, which are
+      # readable without downloading logs.
+      - name: Show clippy errors
+        if: failure()
+        shell: bash
+        run: |
+          grep -E "error|warning" clippy.log | head -25 | while IFS= read -r line; do
+            echo "::error title=clippy::${line//%/%25}"
+          done
+
+      # Reported but not blocking: some plugin tests were written on Linux and
+      # may need Windows adjustments. A failure here must not hide the
+      # installer, but it must not be ignored either: read the log.
+      - name: Test
+        continue-on-error: true
+        run: cargo test --workspace
+
+      - name: Build installers
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm --filter sentinel-desktop tauri build --bundles nsis,msi 2>&1 | tee build.log
+
+      - name: Show build errors
+        if: failure()
+        shell: bash
+        run: |
+          grep -n -i -E "error|failed|panicked|not found" build.log | head -25 | while IFS= read -r line; do
+            echo "::error title=build::${line//%/%25}"
+          done
+
+      - name: Upload installers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentinel-windows-installers
+          if-no-files-found: warn
+          path: |
+            target/release/bundle/nsis/*.exe
+            target/release/bundle/msi/*.msi
+
+  release:
+    name: Attach to draft release
+    needs: windows
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sentinel-windows-installers
+          path: installers
+
+      - name: Draft release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          draft: true
+          files: installers/**/*

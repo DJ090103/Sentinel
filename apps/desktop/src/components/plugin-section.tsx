@@ -1,3 +1,5 @@
+import { motion, useReducedMotion } from "framer-motion";
+import { CountUp } from "@/components/count-up";
 import { CheckCircle2 } from "lucide-react";
 
 import { RiskBadge } from "@/components/clean-confirmation";
@@ -28,13 +30,49 @@ export function ScanSkeleton() {
   );
 }
 
+/** A short radial burst of dots behind the freed-space number. */
+function Burst() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute top-1/2 left-10">
+      {Array.from({ length: 14 }, (_, i) => {
+        const angle = (i / 14) * Math.PI * 2;
+        return (
+          <motion.span
+            key={i}
+            className={
+              i % 2
+                ? "bg-primary absolute size-2 rounded-full"
+                : "bg-success absolute size-2 rounded-full"
+            }
+            initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+            animate={{ x: Math.cos(angle) * 90, y: Math.sin(angle) * 60, opacity: 0, scale: 0.4 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 /** What happened after a clean, including anything that didn't work. */
 export function CleanResult({ outcome }: { outcome: CleanOutcome }) {
+  const reduce = useReducedMotion();
+
   return (
-    <div className="space-y-2 rounded-lg border border-emerald-600/40 bg-emerald-500/10 px-4 py-3 text-sm">
-      <p className="flex items-center gap-2 font-medium text-emerald-700 dark:text-emerald-400">
-        <CheckCircle2 aria-hidden="true" className="size-4" />
-        Freed {formatBytes(outcome.reclaimedBytes)}
+    <motion.div
+      role="status"
+      initial={reduce ? false : { opacity: 0, scale: 0.92, y: 12 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 380, damping: 22 }}
+      className="border-success/50 bg-success/10 relative space-y-2 overflow-hidden rounded-3xl border-2 px-6 py-5 text-sm"
+    >
+      {!reduce && <Burst />}
+      <p className="text-success flex items-center gap-2 text-base font-bold">
+        <CheckCircle2 aria-hidden="true" className="size-5" />
+        Freed
+      </p>
+      <p className="font-display text-5xl font-extrabold tracking-tight">
+        <CountUp value={outcome.reclaimedBytes} format={formatBytes} />
       </p>
       {outcome.removed.length > 0 && (
         <p className="text-muted-foreground">
@@ -52,7 +90,7 @@ export function CleanResult({ outcome }: { outcome: CleanOutcome }) {
           ))}
         </ul>
       )}
-    </div>
+    </motion.div>
   );
 }
 

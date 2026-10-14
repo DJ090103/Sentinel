@@ -16,7 +16,7 @@ members = [
 # Shared metadata for every crate in the workspace, so version/edition/etc.
 # stay in sync in one place instead of drifting per-crate.
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Sentinel Contributors"]
 license = "MIT"

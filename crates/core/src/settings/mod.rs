@@ -8,6 +8,8 @@
 //! The file is written through on every change, so there is no explicit "save"
 //! step for a caller to forget.
 
+pub mod companion;
+
 use std::fmt;
 use std::fs;
 use std::io;
@@ -85,6 +87,8 @@ pub struct Settings {
     /// There is no UI control for this yet — it is edited in this file, which
     /// is a supported way to configure Sentinel (see the module docs).
     pub screenshot_retention_days: u32,
+    /// The floating desktop companion.
+    pub companion: companion::CompanionSettings,
 }
 
 impl Default for Settings {
@@ -94,6 +98,7 @@ impl Default for Settings {
             scheduler_interval_secs: DEFAULT_SCHEDULER_INTERVAL_SECS,
             last_scan_at: None,
             screenshot_retention_days: DEFAULT_SCREENSHOT_RETENTION_DAYS,
+            companion: companion::CompanionSettings::default(),
         }
     }
 }

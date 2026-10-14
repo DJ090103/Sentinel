@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "@fontsource-variable/figtree";
+@import "@fontsource-variable/bricolage-grotesque";
 
 /*
  * Tailwind v4 is configured here, in CSS, rather than in a `tailwind.config.js`
@@ -23,52 +25,63 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.625rem;
+  color-scheme: light;
+  --radius: 1rem;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Light: lavender paper, indigo ink, a gold that reads as "reward". */
+  --background: oklch(0.965 0.014 295);
+  --foreground: oklch(0.2 0.06 285);
+  --card: oklch(1 0.004 295);
+  --card-foreground: oklch(0.2 0.06 285);
+  --popover: oklch(1 0.004 295);
+  --popover-foreground: oklch(0.2 0.06 285);
+  --primary: oklch(0.85 0.17 88);
+  --primary-foreground: oklch(0.22 0.06 285);
+  --primary-edge: oklch(0.66 0.15 80);
+  --secondary: oklch(0.92 0.03 295);
+  --secondary-foreground: oklch(0.25 0.07 285);
+  --muted: oklch(0.94 0.02 295);
+  --muted-foreground: oklch(0.42 0.05 285);
+  --accent: oklch(0.92 0.04 295);
+  --accent-foreground: oklch(0.25 0.07 285);
+  --destructive: oklch(0.62 0.22 18);
+  --success: oklch(0.62 0.15 165);
+  --border: oklch(0.86 0.03 295);
+  --input: oklch(0.86 0.03 295);
+  --ring: oklch(0.6 0.15 285);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  color-scheme: dark;
+  /* Dark: indigo-black, not grey — the tint is what keeps gold from looking cheap. */
+  --background: oklch(0.15 0.045 285);
+  --foreground: oklch(0.96 0.015 290);
+  --card: oklch(0.2 0.055 285);
+  --card-foreground: oklch(0.96 0.015 290);
+  --popover: oklch(0.2 0.055 285);
+  --popover-foreground: oklch(0.96 0.015 290);
+  --primary: oklch(0.86 0.17 90);
+  --primary-foreground: oklch(0.2 0.06 285);
+  --primary-edge: oklch(0.65 0.15 80);
+  --secondary: oklch(0.27 0.07 285);
+  --secondary-foreground: oklch(0.96 0.015 290);
+  --muted: oklch(0.25 0.06 285);
+  --muted-foreground: oklch(0.79 0.04 285);
+  --accent: oklch(0.3 0.08 285);
+  --accent-foreground: oklch(0.96 0.015 290);
+  --destructive: oklch(0.72 0.19 18);
+  --success: oklch(0.85 0.15 165);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.75 0.14 290);
 }
 
 @theme inline {
   --font-sans:
-    Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bricolage Grotesque Variable", "Figtree Variable", ui-sans-serif, sans-serif;
+  --color-success: var(--success);
+  --color-primary-edge: var(--primary-edge);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -103,4 +116,21 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+}
+
+/* Motion is decoration here; people who ask the OS for less get none of it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Native dropdown lists ignore our card colours; without this they open white-on-white in dark mode. */
+select,
+select option {
+  background-color: var(--card);
+  color: var(--foreground);
 }

@@ -30,6 +30,13 @@ pub mod scanner;
 /// that's just a periodic system snapshot; later, periodic plugin scans.
 pub mod scheduler;
 
+/// What the user is doing: foreground-app classification and the sampler that
+/// feeds the desktop companion.
+pub mod activity;
+
+/// Read-only home-folder analysis: folder usage, largest files, duplicates.
+pub mod analysis;
+
 /// SQLite connection setup and schema migrations.
 pub mod database;
 

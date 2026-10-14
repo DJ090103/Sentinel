@@ -12,10 +12,13 @@
 //! will persist is already running and already exercised, so that change
 //! becomes "write the snapshot down" rather than "build the job".
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
+use rusqlite::Connection;
 
+use crate::database::history;
 use crate::scheduler::{Job, JobError};
 use crate::settings::SettingsStore;
 use crate::system::SystemMonitor;
@@ -55,12 +58,31 @@ pub const SYSTEM_SNAPSHOT_JOB_ID: &str = "system-snapshot";
 pub struct SystemSnapshotJob {
     monitor: Arc<Mutex<SystemMonitor>>,
     settings: Arc<Mutex<SettingsStore>>,
+    /// Where readings are stored for Insights, if history is enabled.
+    history: Option<Arc<Mutex<Connection>>>,
+    /// False until the first run, whose CPU figure has nothing to measure against.
+    primed: AtomicBool,
 }
 
 impl SystemSnapshotJob {
     /// Builds the job over the monitor and settings store it should share.
     pub fn new(monitor: Arc<Mutex<SystemMonitor>>, settings: Arc<Mutex<SettingsStore>>) -> Self {
-        Self { monitor, settings }
+        Self {
+            monitor,
+            settings,
+            history: None,
+            primed: AtomicBool::new(false),
+        }
+    }
+
+    /// Also stores every reading in the history database.
+    ///
+    /// Pass a monitor of its own to [`new`](Self::new) when doing this, so the
+    /// stored CPU figure is always an average over the job interval rather
+    /// than whatever window the dashboard's polling happened to leave.
+    pub fn with_history(mut self, history: Arc<Mutex<Connection>>) -> Self {
+        self.history = Some(history);
+        self
     }
 }
 
@@ -84,9 +106,14 @@ impl Job for SystemSnapshotJob {
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
 
-            // Dropped on purpose — see the module docs. Phase 8 writes this to
-            // `system_snapshots` instead.
-            let _reading = monitor.snapshot();
+            let reading = monitor.snapshot();
+            if let Some(db) = &self.history {
+                // The first reading has no earlier sample, so its CPU is unknown.
+                let measured = self.primed.swap(true, Ordering::Relaxed);
+                let cpu = measured.then_some(reading.cpu.usage_percent);
+                let conn = db.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+                history::record_snapshot(&conn, &reading, cpu, Utc::now())?;
+            }
         }
 
         let mut settings = self

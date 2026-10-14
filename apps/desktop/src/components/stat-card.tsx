@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 
@@ -34,23 +35,25 @@ export function StatCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 px-4">
-        <p className="truncate text-xl font-semibold tracking-tight">{value}</p>
+        <p className="font-display truncate text-2xl font-extrabold tracking-tight">{value}</p>
 
         {progressPercent !== undefined && (
           <div
-            className="bg-muted h-1.5 w-full overflow-hidden rounded-full"
+            className="bg-muted h-2.5 w-full overflow-hidden rounded-full"
             role="progressbar"
             aria-label={`${label} used`}
             aria-valuenow={Math.round(progressPercent)}
             aria-valuemin={0}
             aria-valuemax={100}
           >
-            <div
+            <motion.div
               className={cn(
-                "h-full rounded-full transition-all",
+                "h-full rounded-full",
                 progressPercent >= 90 ? "bg-destructive" : "bg-primary",
               )}
-              style={{ width: `${progressPercent}%` }}
+              initial={false}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ type: "spring", stiffness: 120, damping: 20 }}
             />
           </div>
         )}

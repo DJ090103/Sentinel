@@ -139,6 +139,7 @@ pub async fn get_recommendations(
 /// it would be acting on a list that was reviewed when it meant something else.
 #[tauri::command]
 pub async fn clean_targets(
+    app: tauri::AppHandle,
     state: State<'_, PluginState>,
     surface: ScanSurface,
     scan_id: u64,
@@ -169,6 +170,17 @@ pub async fn clean_targets(
     .map_err(|cause| CleanRequestError::Failed {
         detail: format!("the clean did not complete: {cause}"),
     })??;
+
+    // History is best effort: a failed write must not turn a completed clean
+    // into an error the user would read as "nothing was removed".
+    if let Some(db) = tauri::Manager::try_state::<crate::background::DatabaseState>(&app) {
+        let conn = db.0.lock().unwrap_or_else(|p| p.into_inner());
+        if let Err(cause) =
+            sentinel_core::database::history::record_cleanup_now(&conn, &plugin_id, &outcome)
+        {
+            eprintln!("Sentinel: could not record the clean in history: {cause}");
+        }
+    }
 
     Ok(outcome)
 }

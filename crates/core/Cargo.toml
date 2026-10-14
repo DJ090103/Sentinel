@@ -13,9 +13,12 @@ description = "Platform-agnostic domain logic for Sentinel: scanning, scheduling
 [dependencies]
 chrono = { version = "0.4.45", features = ["serde"] }
 directories = "6.0.0"
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+rusqlite_migration = "2.6.0"
 sentinel-plugin-api = { path = "../plugin-api" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
+sha2 = "0.11.1"
 sysinfo = "0.39.6"
 # Only the features `scheduler` actually uses. Not `full`: this is the crate
 # whose stated purpose is to stay lean and fast to `cargo test`, and most of
@@ -24,3 +27,9 @@ tokio = { version = "1.53.1", features = ["macros", "rt", "sync", "time"] }
 
 [dev-dependencies]
 tempfile = "3.27.0"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = { version = "0.14.0", features = ["screensaver"] }
+
+[target."cfg(windows)".dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_System_Threading", "Win32_UI_Input_KeyboardAndMouse", "Win32_System_SystemInformation", "Win32_Graphics_Dwm"] }
